@@ -10,8 +10,66 @@ from django.db.models.query import QuerySet
 import requests
 from SolrClient import SolrClient
 
+from parasol import schema
+
 
 logger = logging.getLogger(__name__)
+
+
+class UnicodeFoldingTextAnalyzer(schema.SolrAnalyzer):
+    '''Solr text field analyzer with unicode folding. Includes all standard
+    text field analyzers (stopword filters, lower case, possessive, keyword
+    marker, porter stemming) and adds ICU folding filter factory.
+    '''
+    tokenizer = 'solr.StandardTokenizerFactory'
+    filters = [
+        {"class": "solr.StopFilterFactory", "ignoreCase": True,
+         "words": "lang/stopwords_en.txt"},
+        {"class": "solr.LowerCaseFilterFactory"},
+        {"class": "solr.EnglishPossessiveFilterFactory"},
+        {"class": "solr.KeywordMarkerFilterFactory"},
+        {"class": "solr.PorterStemFilterFactory"},
+        {"class": "solr.ICUFoldingFilterFactory"},
+    ]
+
+
+class SolrTextField(schema.SolrTypedField):
+    field_type = 'text_en'
+
+
+class PPASolrSchema(schema.SolrSchema):
+    '''Solr schema configuration for PPA'''
+
+    # NOTE: not yet complete! testing / prototype with parasol
+
+    # field type declarations
+    text_en = schema.SolrFieldType('solr.TextField',
+                                   analyzer=UnicodeFoldingTextAnalyzer)
+
+    # field declarations
+    source_id = schema.SolrStringField()
+    content = schema.SolrField('text_en')
+    collections = schema.SolrField('text_en', multivalued=True)
+
+    author = SolrTextField()
+    author_exact = schema.SolrStringField()
+    title = SolrTextField()
+    title_nostem = schema.SolrStringField()
+    subtitle = SolrTextField()
+
+    #: copy fields, for facets and variant search options
+    copy_fields = {
+        'author': 'author_exact',
+        'collections': 'collections_s',
+        # ('title', 'title_nostem'),
+        # ('subtitle', 'subtitle_nostem'),
+        'title': ['title_nostem', 'title_s'],
+        'subtitle': 'subtitle_s',
+    }
+
+
+### ---------------
+# previous solr implementation with SolrClient
 
 
 def get_solr_connection():

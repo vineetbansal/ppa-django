@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django_cas_ng',
     'pucas',
+    'parasol',
     'semanticuiforms',
     # 'wagtail.contrib.forms',
     'wagtail.contrib.redirects',
